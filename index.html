@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Trái Tim Vui Vẻ 💗</title>
+  <style>
+    :root{
+      --bg1: linear-gradient(135deg,#fffbf6 0%,#ffeef8 50%,#f7f0ff 100%);
+      --accent: #ff6fa3;
+      --text: #222;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    body{background:var(--bg1);color:var(--text);display:flex;align-items:center;justify-content:center;overflow:hidden}
+
+    .app{position:relative;width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:32px}
+
+    .card{backdrop-filter:blur(6px);border-radius:16px;padding:26px 30px;box-shadow:0 10px 30px rgba(20,20,50,0.06);display:flex;flex-direction:column;align-items:center;gap:12px;max-width:920px;width:100%}
+
+    h1{font-size:clamp(26px,4vw,44px);margin:0;letter-spacing:0.6px}
+    .message{display:flex;gap:10px;align-items:center}
+    .heart-mid{width:140px;height:140px;display:grid;place-items:center}
+
+    /* beating heart */
+    .heart{width:120px;height:120px;position:relative;transform-origin:center center;animation:beat 1s infinite ease-in-out;cursor:pointer}
+    .heart:before,.heart:after{content:"";position:absolute;left:50%;top:50%;width:70px;height:70px;background:var(--accent);border-radius:50%}
+    .heart:before{transform:translate(-50%,-50%) rotate(-45deg);}
+    .heart:after{transform:translate(-50%,-50%) rotate(45deg);}
+    .heart svg{position:absolute;left:0;top:0;width:100%;height:100%;filter:drop-shadow(0 6px 12px rgba(0,0,0,0.08))}
+
+    @keyframes beat{0%{transform:scale(0.98)}25%{transform:scale(1.08)}40%{transform:scale(0.95)}60%{transform:scale(1.02)}100%{transform:scale(0.98)}}
+
+    /* pastel floating hearts background */
+    .float-layer{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+    .float-heart{position:absolute;width:18px;height:18px;opacity:0.85;transform:translateY(0);animation:floatUp linear infinite}
+
+    /* controls */
+    .controls{display:flex;gap:8px;align-items:center}
+    button, .toggle{background:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:600;box-shadow:0 6px 18px rgba(20,20,50,0.06)}
+    input[type=text]{padding:8px 12px;border-radius:10px;border:1px solid rgba(0,0,0,0.08);min-width:180px}
+
+    /* neon theme */
+    .neon{--bg1:linear-gradient(180deg,#000000 0%,#050005 100%);--accent:#00ffe1;--text:#e6f7ff}
+    .neon body{background:#000}
+    .neon .card{background:rgba(0,0,0,0.25);box-shadow:0 8px 40px rgba(0,0,0,0.6);border:1px solid rgba(0,255,230,0.08)}
+    .neon .heart:before,.neon .heart:after{background:var(--accent)}
+    .neon .heart svg{filter:drop-shadow(0 0 16px var(--accent)) drop-shadow(0 10px 30px rgba(0,0,0,0.6))}
+    .neon button, .neon .toggle{background:rgba(0,0,0,0.5);color:var(--text);border:1px solid rgba(0,255,230,0.06)}
+
+    /* small responsive */
+    @media (max-width:520px){.card{padding:18px}.heart-mid{width:120px;height:120px}.heart{width:96px;height:96px}}
+
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card" id="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <div>
+          <h1 id="title">I ❤️ You</h1>
+          <div style="font-size:14px;opacity:0.8">Nhấn vào trái tim để xem nổ tim + nhạc ✨</div>
+        </div>
+        <div class="controls">
+          <input id="txt" type="text" placeholder="Nhập câu ngắn (ví dụ: Tui yêu bạn)" />
+          <button id="apply">Áp dụng</button>
+          <button id="theme">Neon / Pastel</button>
+          <button id="play">▶ Nhạc</button>
+        </div>
+      </div>
+
+      <div class="heart-mid">
+        <div class="heart" id="mainHeart" title="Nhấn nè">
+          <!-- svg heart (for smooth shape) -->
+          <svg viewBox="0 0 32 29.6" xmlns="http://www.w3.org/2000/svg"><path d="M23.6 0c-2.6 0-4.9 1.4-6.1 3.4C16.3 1.4 14 0 11.4 0 5.1 0 0 5.1 0 11.4 0 22.1 16 29.6 16 29.6s16-7.5 16-18.2C32 5.1 26.9 0 20.6 0z" fill="white"/></svg>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="float-layer" id="floatLayer" aria-hidden="true"></div>
+  </div>
+
+  <script>
+    // Basic app wiring
+    const body = document.body;
+    const card = document.getElementById('card');
+    const mainHeart = document.getElementById('mainHeart');
+    const floatLayer = document.getElementById('floatLayer');
+    const btnTheme = document.getElementById('theme');
+    const btnPlay = document.getElementById('play');
+    const inputTxt = document.getElementById('txt');
+    const btnApply = document.getElementById('apply');
+    const title = document.getElementById('title');
+
+    let neon = false;
+    // create some pastel floating hearts
+    function makeFloatHearts(count=18){
+      floatLayer.innerHTML='';
+      const colors = ['#ffd5ea','#ffefcc','#e8d7ff','#ffd9e6','#ffe7f0'];
+      for(let i=0;i<count;i++){
+        const el = document.createElement('div');
+        el.className='float-heart';
+        const size = Math.random()*22 + 10;
+        el.style.width = el.style.height = size + 'px';
+        el.style.left = Math.random()*100 + '%';
+        el.style.bottom = (-Math.random()*20 - 10) + '%';
+        el.style.opacity = 0.6 + Math.random()*0.4;
+        el.style.background = colors[Math.floor(Math.random()*colors.length)];
+        el.style.borderRadius = '50%';
+        const dur = 8 + Math.random()*14;
+        el.style.animation = `floatUp ${dur}s linear ${Math.random()*-dur}s infinite`;
+        el.style.transform = `translateY(0) rotate(${Math.random()*360}deg)`;
+        floatLayer.appendChild(el);
+      }
+    }
+    // CSS animation keyframes injected for variable durations
+    const style = document.createElement('style');
+    style.innerHTML = `@keyframes floatUp{0%{transform:translateY(0)}100%{transform:translateY(-140vh)}}`;
+    document.head.appendChild(style);
+    makeFloatHearts();
+
+    // Toggle theme
+    btnTheme.addEventListener('click',()=>{
+      neon = !neon;
+      if(neon){
+        document.documentElement.classList.add('neon');
+        btnTheme.textContent='Chuyển sang Pastel'
+      }else{
+        document.documentElement.classList.remove('neon');
+        btnTheme.textContent='Chuyển sang Neon'
+      }
+    });
+
+    // Apply custom text
+    btnApply.addEventListener('click',()=>{
+      const v = inputTxt.value.trim();
+      if(v.length) title.textContent = v;
+    });
+
+    // Click heart -> burst particles + short bass thump
+    function burst(x,y,count=18){
+      for(let i=0;i<count;i++){
+        const p = document.createElement('div');
+        p.className='burst';
+        const size = 8 + Math.random()*24;
+        p.style.width=p.style.height=size+'px';
+        p.style.borderRadius='50%';
+        p.style.position='absolute';
+        p.style.left = x - size/2 + 'px';
+        p.style.top = y - size/2 + 'px';
+        p.style.pointerEvents='none';
+        p.style.background = neon? 'rgba(0,255,220,0.9)' : 'rgba(255,115,160,0.95)';
+        p.style.transform = `translate3d(0,0,0)`;
+        p.style.opacity = '1';
+        p.style.transition = `transform 700ms cubic-bezier(.17,.8,.24,1),opacity 700ms linear`;
+        document.body.appendChild(p);
+        const angle = Math.random()*Math.PI*2;
+        const dist = 40 + Math.random()*120;
+        requestAnimationFrame(()=>{
+          p.style.transform = `translate3d(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px, 0) scale(0.6)`;
+          p.style.opacity = '0';
+        });
+        setTimeout(()=>p.remove(),900);
+      }
+    }
+
+    mainHeart.addEventListener('click',(e)=>{
+      const rect = mainHeart.getBoundingClientRect();
+      const cx = rect.left + rect.width/2;
+      const cy = rect.top + rect.height/2;
+      burst(cx,cy,26);
+      playThump();
+    });
+
+    // Background click also bursts small hearts
+    document.body.addEventListener('click',(e)=>{
+      if(e.target!==mainHeart && !e.target.closest('.controls')){
+        burst(e.clientX,e.clientY,12);
+      }
+    });
+
+    // Simple WebAudio melody + thump
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let ctx = null;
+    let playing = false;
+    let melodyTimer = null;
+
+    function ensureCtx(){
+      if(!ctx) ctx = new AudioContext();
+    }
+    function playThump(){
+      ensureCtx();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type='sine';
+      o.frequency.setValueAtTime(120,ctx.currentTime);
+      g.gain.setValueAtTime(0.0001,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.8,ctx.currentTime+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.45);
+      o.connect(g); g.connect(ctx.destination);
+      o.start(); o.stop(ctx.currentTime+0.5);
+    }
+
+    // a tiny looping pastel melody
+    function startMelody(){
+      ensureCtx();
+      if(playing) return;
+      playing = true;
+      btnPlay.textContent='⏸ Nhạc';
+      const notes = [440,523.25,659.25,523.25,440,329.63]; // A4, C5, E5, C5, A4, E4
+      let idx=0;
+      melodyTimer = setInterval(()=>{
+        const now = ctx.currentTime;
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = Math.random()>0.5? 'sine' : 'triangle';
+        o.frequency.setValueAtTime(notes[idx%notes.length], now);
+        g.gain.setValueAtTime(0.0001, now);
+        g.gain.linearRampToValueAtTime(0.12, now+0.02);
+        g.gain.exponentialRampToValueAtTime(0.0001, now+0.6);
+        o.connect(g); g.connect(ctx.destination);
+        o.start(); o.stop(now+0.7);
+        idx++;
+      }, 700);
+    }
+    function stopMelody(){
+      if(!playing) return;
+      playing = false;
+      btnPlay.textContent='▶ Nhạc';
+      clearInterval(melodyTimer); melodyTimer=null;
+    }
+    btnPlay.addEventListener('click',()=>{
+      // resume context if suspended (mobile browsers)
+      if(!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+      if(ctx.state === 'suspended') ctx.resume();
+      if(!playing) startMelody(); else stopMelody();
+    });
+
+    // small accessibility: space toggles melody
+    window.addEventListener('keydown',(e)=>{ if(e.code==='Space'){ e.preventDefault(); btnPlay.click(); }});
+
+    // small float animation tweak when neon on
+    const obs = new MutationObserver(()=>{
+      if(document.documentElement.classList.contains('neon')){
+        // fewer pastel hearts
+        makeFloatHearts(8);
+      }else makeFloatHearts(22);
+    });
+    obs.observe(document.documentElement,{attributes:true,attributeFilter:['class']});
+
+    // initial tiny heart pulse color change loop
+    setInterval(()=>{
+      const svg = mainHeart.querySelector('svg path');
+      svg.setAttribute('fill', neon? '#00ffdd' : '#ffffff');
+    }, 800);
+
+  </script>
+</body>
+</html>
